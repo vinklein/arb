@@ -20,9 +20,8 @@ int main()
     flint_printf("get_str....");
     fflush(stdout);
     flint_randinit(state);
-
     /* just test no crashing... */
-    for (iter = 0; iter < 10000 * arb_test_multiplier(); iter++)
+    /*for (iter = 0; iter < 10000 * arb_test_multiplier(); iter++)
     {
         arb_t x;
         char * s;
@@ -33,15 +32,13 @@ int main()
         arb_randtest_special(x, state, 1 + n_randint(state, 1000), 1 + n_randint(state, 100));
 
         n = 1 + n_randint(state, 300);
-
         s = arb_get_str(x, n, (n_randint(state, 2) * ARB_STR_MORE)
                             |  (n_randint(state, 2) * ARB_STR_NO_RADIUS)
                             | (ARB_STR_CONDENSE * n_randint(state, 50)));
 
         flint_free(s);
         arb_clear(x);
-    }
-
+    }*/
     for (iter = 0; iter < 100000 * arb_test_multiplier(); iter++)
     {
         arb_t x, y;
@@ -54,6 +51,10 @@ int main()
 
         arb_randtest_special(x, state, 1 + n_randint(state, 1000), 1 + n_randint(state, 100));
         arb_randtest_special(y, state, 1 + n_randint(state, 1000), 1 + n_randint(state, 100));
+
+        flint_printf("\nx = ");
+        arb_fprint(stdout, x);
+        flint_printf("\nn = %wd\n", n);
 
         n = 1 + n_randint(state, 300);
         prec = 2 + n_randint(state, 1000);
@@ -74,7 +75,7 @@ int main()
         arb_clear(x);
         arb_clear(y);
     }
-
+    flint_printf("t4");
     flint_randclear(state);
     flint_cleanup();
     flint_printf("PASS\n");

@@ -16,6 +16,7 @@
 static int
 arb_set_float_str(arb_t res, const char * inp, slong prec)
 {
+    /*flint_printf("arb_set_float_str s: '%s'\n", inp);*/
     char * emarker;
     char * buf;
     int error;
@@ -27,6 +28,7 @@ arb_set_float_str(arb_t res, const char * inp, slong prec)
 
     if (inp[0] == '+')
     {
+        flint_printf("here");
         return arb_set_float_str(res, inp + 1, prec);
     }
 
@@ -160,6 +162,7 @@ cleanup:
 int
 arb_set_str(arb_t res, const char * inp, slong prec)
 {
+    flint_printf("arb_set_str s: '%s'\n", inp);
     char * buf;
     char * split;
     char * first;

@@ -15,7 +15,7 @@
 
 #define RADIUS_DIGITS 3
 
-char * 
+char *
 _arb_condense_digits(char * s, slong n)
 {
     slong i, j, run, out;
@@ -302,8 +302,9 @@ arb_get_str_parts(int * negative, char **mid_digits, fmpz_t mid_exp,
     slong good;
     mp_bitcnt_t shift;
 
-    if (!arb_is_finite(x))
+    /*if (!arb_is_finite(x))
     {
+        flint_printf("WAZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
         *negative = 0;
 
         fmpz_zero(mid_exp);
@@ -318,8 +319,7 @@ arb_get_str_parts(int * negative, char **mid_digits, fmpz_t mid_exp,
         strcpy(*rad_digits, "inf");
 
         return;
-    }
-
+    }*/
     fmpz_init(mid);
     fmpz_init(rad);
     fmpz_init(exp);
@@ -331,7 +331,9 @@ arb_get_str_parts(int * negative, char **mid_digits, fmpz_t mid_exp,
         good = arb_rel_accuracy_bits(x) * 0.30102999566398119521 + 2;
         n = FLINT_MIN(n, good);
     }
-
+    flint_printf("\nx = ");
+    arb_fprint(stdout, x);
+    flint_printf("\n");
     arb_get_fmpz_mid_rad_10exp(mid, rad, exp, x, FLINT_MAX(n, 1));
     *negative = arf_sgn(arb_midref(x)) < 0;
     fmpz_abs(mid, mid);
@@ -341,7 +343,8 @@ arb_get_str_parts(int * negative, char **mid_digits, fmpz_t mid_exp,
 
     /* Truncate further so that 1 ulp error can be guaranteed (rigorous part)
        Note: mid cannot be zero here if n >= 1 and rad != 0. */
-    if (n >= 1 && !(more || fmpz_is_zero(rad)))
+    flint_printf("rad %f\n", rad);
+    if (n >= 1 && (!(more || (fmpz_is_zero(rad))) || mag_is_inf(arb_radref(x))))
     {
         slong lenmid, lenrad, rem;
 
@@ -349,6 +352,7 @@ arb_get_str_parts(int * negative, char **mid_digits, fmpz_t mid_exp,
 
         lenmid = strlen(*mid_digits);
         lenrad = strlen(*rad_digits);
+        flint_printf("C mid_d: %s\n", *mid_digits);
 
         if (lenmid > lenrad)
         {
@@ -381,6 +385,8 @@ arb_get_str_parts(int * negative, char **mid_digits, fmpz_t mid_exp,
         flint_free(*rad_digits);
     }
 
+    flint_printf("D mid_d: %s\n", *mid_digits);
+
     /* no accurate digits -- output 0 +/- rad */
     if (n < 1)
     {
@@ -390,6 +396,7 @@ arb_get_str_parts(int * negative, char **mid_digits, fmpz_t mid_exp,
     }
     else
     {
+        flint_printf("here mid_d: %s\n", *mid_digits);
         _arb_digits_round_inplace(*mid_digits, &shift, err, n, ARF_RND_NEAR);
         fmpz_add_ui(mid_exp, exp, shift);
         fmpz_abs(err, err);
@@ -404,6 +411,7 @@ arb_get_str_parts(int * negative, char **mid_digits, fmpz_t mid_exp,
     }
     else
     {
+        flint_printf("icite\n");
         *rad_digits = fmpz_get_str(NULL, 10, rad);
         _arb_digits_round_inplace(*rad_digits, &shift, err, RADIUS_DIGITS, ARF_RND_UP);
         fmpz_add_ui(rad_exp, exp, shift);
@@ -435,18 +443,6 @@ char * arb_get_str(const arb_t x, slong n, ulong flags)
     more = flags & ARB_STR_MORE;
     condense = flags / ARB_STR_CONDENSE;
 
-    if (!arb_is_finite(x))
-    {
-        res = flint_malloc(10);
-
-        if (arf_is_nan(arb_midref(x)))
-            strcpy(res, "nan");
-        else
-            strcpy(res, "[+/- inf]");
-
-        return res;
-    }
-
     fmpz_init(mid_exp);
     fmpz_init(rad_exp);
 
@@ -457,6 +453,58 @@ char * arb_get_str(const arb_t x, slong n, ulong flags)
 
     _arb_digits_as_float_str(&mid_digits, mid_exp, -4, FLINT_MAX(6, n - 1));
     _arb_digits_as_float_str(&rad_digits, rad_exp, -2, 2);
+
+    if (!arb_is_finite(x))
+    {
+        flint_printf("arb is inf more:%wd\n", more);
+
+        if (arf_is_nan(arb_midref(x)))
+        {
+            res = flint_malloc(4);
+            strcpy(res, "nan");
+            flint_printf("2 nan\n");
+        }
+        else if(arf_is_inf(arb_midref(x)))
+        {
+            flint_printf("mid is inf neg:%wd\n", arf_is_neg_inf(arb_midref(x)));
+            if(more)
+                res = flint_malloc(strlen(rad_digits)+12);
+            else
+                res = flint_malloc(7);
+
+            strcpy(res, "[");
+            if(arf_is_neg_inf(arb_midref(x)))
+                strcat(res, "-");
+            else
+                strcat(res, "+");
+            strcat(res, "inf");
+            if(more)
+            {
+                strcat(res, " +/- ");
+                strcat(res, rad_digits);
+            }
+            strcat(res, "]");
+        }
+        else
+        {
+            flint_printf("rad is inf more: %wd midigits:%s, raddigit: %s\n", more, mid_digits, rad_digits);
+            if(more)
+                res = flint_malloc(strlen(mid_digits)+10);
+            else
+                res = flint_malloc(11);
+
+            strcpy(res, "[");
+            if(more)
+                strcat(res, mid_digits);
+            else
+                strcat(res, "0");
+            strcat(res, " +/- inf]");
+        }
+        /*else
+            strcpy(res, "[+/- inf]");*/
+
+        return res;
+    }
 
     if (skip_rad)
     {
